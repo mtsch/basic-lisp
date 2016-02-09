@@ -14,8 +14,6 @@ import           Data.Foldable (toList)
 import           Data.HashMap.Lazy (HashMap)
 import qualified Data.HashMap.Lazy as Map
 import           Data.Maybe
-import           Data.Vector.Persistent (Vector)
-import qualified Data.Vector.Persistent as Vector
 import           Text.Parsec hiding (spaces, space)
 
 -- An environment is a mapping from names to expressions.
@@ -32,7 +30,6 @@ type EnvSExpr = (Environment, SExpr)
 -- S-expression A.K.A. the AST.
 data SExpr = Atom String
            | List [SExpr]
-           | Vec (Vector SExpr)
            | Integer Int
            | String String
            | Bool Bool
@@ -46,7 +43,6 @@ data SExpr = Atom String
 instance Eq SExpr where
     Atom a1    == Atom a2    = a1 == a2
     List l1    == List l2    = l1 == l2
-    Vec v1     == Vec v2     = v1 == v2
     Integer i1 == Integer i2 = i1 == i2
     String s1  == String s2  = s1 == s2
     Bool b1    == Bool b2    = b1 == b2
@@ -56,7 +52,6 @@ instance Eq SExpr where
 instance Show SExpr where
     show (Atom a)       = a
     show (List l)       = "(" ++ (unwords . map show) l ++ ")"
-    show (Vec v)        = "[" ++ (unwords . map show . toList) v ++ "]"
     show (Integer i)    = show i
     show (String s)     = "\"" ++ s ++ "\""
     show (Bool True)    = "true"

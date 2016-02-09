@@ -3,7 +3,6 @@ module Primitives
 where
 
 import qualified Data.HashMap.Lazy as Map
-import qualified Data.Vector.Persistent as Vector
 
 import           SExpr
 
@@ -39,6 +38,7 @@ headPrimitive [_]       = Err "Function expecting list!"
 headPrimitive _         = airityError
 
 tailPrimitive :: [SExpr] -> SExpr
+tailPrimitive [List []] = Err "Function expecting non-empty list!"
 tailPrimitive [List l] = List $ tail l
 tailPrimitive [_]      = Err "Function expecting list!"
 tailPrimitive _        = airityError

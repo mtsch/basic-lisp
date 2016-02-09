@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wall #-}
 module SExpr
     ( Environment
     , resolveName
@@ -13,14 +14,13 @@ module SExpr
     , isValue
     , unpackInt
     , unpackString
-    , unpackList )
+    , unpackList
+    , unpackAtom )
 where
 
-import           Data.Foldable (toList)
 import           Data.HashMap.Lazy (HashMap)
 import qualified Data.HashMap.Lazy as Map
 import           Data.Maybe
-import           Text.Parsec hiding (spaces, space)
 
 -- An environment is a mapping from names to expressions.
 type Environment = HashMap String SExpr
@@ -108,9 +108,14 @@ unpackInt _       = error "Can't unpack this to Int"
 -- Unpack string from SExpr.
 unpackString :: SExpr -> String
 unpackString (String s) = s
-unpackString _          = error "Can't unpack this to String"
+unpackString _          = error "Can't unpack this as String!"
 
 -- Unpack list from SExpr.
 unpackList :: SExpr -> [SExpr]
 unpackList (List l) = l
-unpackList _        = error "Can't unpack this to List"
+unpackList _        = error "Can't unpack this as List!"
+
+-- Get the value of Atom.
+unpackAtom :: SExpr -> String
+unpackAtom (Atom a) = a
+unpackAtom _        = error "Can't unpack this as Atom!"

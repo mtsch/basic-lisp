@@ -1,9 +1,8 @@
+{-# OPTIONS_GHC -Wall #-}
 module Evaluator
 where
 
-import           Data.HashMap.Lazy (HashMap, (!))
 import qualified Data.HashMap.Lazy as Map
-import           Data.Maybe
 
 import           SExpr
 import           Reader
@@ -30,10 +29,6 @@ evalListBody :: Environment -> [SExpr] -> IO EnvSExpr
 evalListBody env expressions =
     case expressions of
 
-      -- Can't call an integer, a string, a bool or nil
-      v : _ | isValue v ->
-          return (env, Err "Can't call a value!")
-
       -- Variable definition.
       [Atom "def", Atom name, sexpr] ->
           do (_, rhs) <- eval env sexpr
@@ -41,21 +36,19 @@ evalListBody env expressions =
              return (env', rhs)
 
       -- if-then-else.
-      [Atom "if", pred, th, el] ->
-          do evaldPred <- eval env pred
+      [Atom "if", predicate, th, el] ->
+          do evaldPred <- eval env predicate
              case evaldPred of
-               (env', Bool False) -> eval env el
-               (env', List [])    -> eval env el
-               (env', Nil)        -> eval env el
-               (env', _)          -> eval env th
+               (env', Bool False) -> eval env' el
+               (env', List [])    -> eval env' el
+               (env', Nil)        -> eval env' el
+               (env', _)          -> eval env' th
 
       -- Function declaration.
-      [Atom "fun", List args, List body] ->
+      [Atom "fun", List args, List expr] ->
           return (env, if not . all isAtom $ args
                        then Err "Bad function declaration!"
-                       else Fun (map toString args) env (List body))
-            where
-              toString (Atom s) = s
+                       else Fun (map unpackAtom args) env (List expr))
 
       -- Bad function declaration.
       Atom "fun" : _ ->
@@ -84,17 +77,34 @@ evalListBody env expressions =
 
       -- Atom that needs to be resolved.
       Atom a : rest ->
-          do resolved <- fmap snd $ eval env (Atom a)
+          do resolved <- snd <$> eval env (Atom a)
              evalListBody env (resolved : rest)
 
       -- Expression that needs to be evaluated.
-      exp@(List _) : rest ->
-          do (env', resolved) <- eval env exp
+      expr@(List _) : rest ->
+          do (env', resolved) <- eval env expr
              evalListBody env' (resolved : rest)
 
       -- Errors propagate.
       err@(Err _) : _ ->
           return (env, err)
+
+      -- Can't call an integer, a string, a bool or nil
+      (Int _) : _ ->
+          return (env, Err "Can't call an int!")
+
+      (String _) : _ ->
+          return (env, Err "Can't call a string!")
+
+      (Bool _) : _ ->
+          return (env, Err "Can't call a bool!")
+
+      Nil : _ ->
+          return (env, Err "Can't call nil!")
+
+      -- Empty list doesn't evaluate.
+      [] ->
+          return (env, List [])
 
 -- Call a function.
 callFunction :: Environment -> SExpr -> [SExpr] -> IO EnvSExpr
@@ -127,7 +137,7 @@ evalSpecialForm env expressions =
 
       -- Eval atom else.
       [atom@(Atom _)] ->
-           do result <- fmap snd $ eval env atom
+           do result <- snd <$> eval env atom
               evalListBody env [Atom "eval", result]
 
       -- Bad eval.

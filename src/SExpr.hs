@@ -5,12 +5,13 @@ module SExpr
     , SExpr (..)
     , isAtom
     , isList
-    , isInteger
+    , isInt
     , isString
     , isBool
     , isErr
     , isFun
-    , unpackInteger
+    , isValue
+    , unpackInt
     , unpackString
     , unpackList )
 where
@@ -36,7 +37,7 @@ type EnvSExpr = (Environment, SExpr)
 -- S-expression A.K.A. the AST.
 data SExpr = Atom String
            | List [SExpr]
-           | Integer Int
+           | Int Int
            | String String
            | Bool Bool
            | Nil
@@ -49,7 +50,7 @@ data SExpr = Atom String
 instance Eq SExpr where
     Atom a1    == Atom a2    = a1 == a2
     List l1    == List l2    = l1 == l2
-    Integer i1 == Integer i2 = i1 == i2
+    Int i1     == Int i2 = i1 == i2
     String s1  == String s2  = s1 == s2
     Bool b1    == Bool b2    = b1 == b2
     Nil        == Nil        = True
@@ -58,7 +59,7 @@ instance Eq SExpr where
 instance Show SExpr where
     show (Atom a)       = a
     show (List l)       = "(" ++ (unwords . map show) l ++ ")"
-    show (Integer i)    = show i
+    show (Int i)        = show i
     show (String s)     = "\"" ++ s ++ "\""
     show (Bool True)    = "true"
     show (Bool False)   = "false"
@@ -76,9 +77,9 @@ isList :: SExpr -> Bool
 isList (List _) = True
 isList _        = False
 
-isInteger :: SExpr -> Bool
-isInteger (Integer _) = True
-isInteger _           = False
+isInt :: SExpr -> Bool
+isInt (Int _) = True
+isInt _       = False
 
 isString :: SExpr -> Bool
 isString (String _) = True
@@ -96,11 +97,13 @@ isFun :: SExpr -> Bool
 isFun Fun {} = True
 isFun _      = False
 
+isValue :: SExpr -> Bool
+isValue v = isInt v || isString v || isBool v
 
 -- Unpack int from SExpr.
-unpackInteger :: SExpr -> Int
-unpackInteger (Integer i) = i
-unpackInteger _           = error "Can't unpack this to Int"
+unpackInt :: SExpr -> Int
+unpackInt (Int i) = i
+unpackInt _       = error "Can't unpack this to Int"
 
 -- Unpack string from SExpr.
 unpackString :: SExpr -> String

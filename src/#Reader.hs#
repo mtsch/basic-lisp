@@ -2,10 +2,10 @@ module Reader
     ( readSExpr )
 where
 
-import           Control.Applicative ((<$>))
-import           Text.Parsec hiding (spaces, space)
+import Control.Applicative ((<$>))
+import Text.Parsec hiding (spaces, space)
 
-import           SExpr
+import SExpr
 
 -- Allowed symbols.
 symbol :: Parsec String () Char

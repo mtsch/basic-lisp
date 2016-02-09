@@ -18,17 +18,17 @@ expectingError s = return . Err $ "Function expecting " ++ s ++ "!"
 -- Int -> Int -> Int function wrapped into a primitive function.
 intintPrim :: (Int -> Int -> Int) -> [SExpr] -> IO SExpr
 intintPrim fun args
-    | length args < 2    = airityError
-    | all isInteger args = return . Integer $ foldl1 fun (map unpackInteger args)
-    | otherwise          = expectingError "integers"
+    | length args < 2 = airityError
+    | all isInt args  = return . Int $ foldl1 fun (map unpackInt args)
+    | otherwise       = expectingError "integers"
 
--- Integer division.
+-- Int division.
 divPrim :: [SExpr] -> IO SExpr
 divPrim args
-    | all isInteger args &&
-      notElem (Integer 0) args = return . Integer $ foldl1 div (map unpackInteger args)
-    | all isInteger args       = (return . Err) "Division by zero!"
-    | otherwise                = expectingError "integers"
+    | all isInt args &&
+      notElem (Int 0) args = return . Int $ foldl1 div (map unpackInt args)
+    | all isInt args       = (return . Err) "Division by zero!"
+    | otherwise            = expectingError "integers"
 
 -- Equal and not equal function wrapper.
 eqneqPrim :: (SExpr -> SExpr -> Bool) -> [SExpr] -> IO SExpr
@@ -37,9 +37,9 @@ eqneqPrim _ _              = airityError
 
 -- Wrapper for functions that compare ints.
 intComparisonPrim :: (Int -> Int -> Bool) -> [SExpr] -> IO SExpr
-intComparisonPrim fun [Integer i1, Integer i2] = return . Bool $ fun i1 i2
-intComparisonPrim _ [_, _]                     = expectingError "two integers"
-intComparisonPrim _ _                          = airityError
+intComparisonPrim fun [Int i1, Int i2] = return . Bool $ fun i1 i2
+intComparisonPrim _ [_, _]             = expectingError "two integers"
+intComparisonPrim _ _                  = airityError
 
 -- List head.
 headPrim :: [SExpr] -> IO SExpr

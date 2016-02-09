@@ -18,29 +18,21 @@ evalMulti env (ex:exs) = do (env', _) <- eval env ex
 
 -- Evaluate an S-Expression.
 eval :: Environment -> SExpr -> IO EnvSExpr
-eval env sexpr =
-    case sexpr of
-      (Atom a)  -> return (env, resolveName env a)
-      (List l)  -> evalList env l
-      sexpr     -> return (env, sexpr)
+eval env expression =
+    case expression of
+      (Atom a) -> return (env, resolveName env a)
+      (List l) -> evalListBody env l
+      value    -> return (env, value)
 
--- Evaluate a list. This can be a function call or a special form such as def.
-evalList :: Environment -> [SExpr] -> IO EnvSExpr
-evalList env expressions =
+-- Evaluate the body of a list.
+-- This can be a function call or a special form such as def or if-then-else.
+evalListBody :: Environment -> [SExpr] -> IO EnvSExpr
+evalListBody env expressions =
     case expressions of
 
       -- Can't call an integer, a string, a bool or nil
-      Integer _ : _ ->
-          return (env, Err "Can't call an integer!")
-
-      String _ : _ ->
-          return (env, Err "Can't call a string!")
-
-      Bool _ : _ ->
-          return (env, Err "Can't call a bool!")
-
-      Nil : _ ->
-          return (env, Err "Can't call nil!")
+      v : _ | isValue v ->
+          return (env, Err "Can't call a value!")
 
       -- Variable definition.
       [Atom "def", Atom name, sexpr] ->
@@ -93,12 +85,12 @@ evalList env expressions =
       -- Atom that needs to be resolved.
       Atom a : rest ->
           do resolved <- fmap snd $ eval env (Atom a)
-             evalList env (resolved : rest)
+             evalListBody env (resolved : rest)
 
       -- Expression that needs to be evaluated.
       exp@(List _) : rest ->
           do (env', resolved) <- eval env exp
-             evalList env' (resolved : rest)
+             evalListBody env' (resolved : rest)
 
       -- Errors propagate.
       err@(Err _) : _ ->
@@ -127,16 +119,16 @@ evalSpecialForm env expressions =
 
       -- Evaluate quoted list.
       [List [Atom "quote", List l]] ->
-          evalList env l
+          evalListBody env l
 
       -- Evaluate list.
       [List l] ->
-          evalList env l
+          evalListBody env l
 
       -- Eval atom else.
       [atom@(Atom _)] ->
            do result <- fmap snd $ eval env atom
-              evalList env [Atom "eval", result]
+              evalListBody env [Atom "eval", result]
 
       -- Bad eval.
       _ ->

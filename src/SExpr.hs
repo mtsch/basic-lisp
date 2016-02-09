@@ -26,7 +26,7 @@ type Environment = HashMap String SExpr
 
 -- Find variable in environment.
 resolveName :: Environment -> String -> SExpr
-resolveName env name = fromMaybe (Err $ "Unknown variable \"" ++ name ++ "\"!")
+resolveName env name = fromMaybe (Err $ "Unknown symbol \"" ++ name ++ "\"!")
                                  (Map.lookup name env)
 
 

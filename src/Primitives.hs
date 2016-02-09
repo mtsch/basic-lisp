@@ -7,18 +7,22 @@ import qualified Data.HashMap.Lazy as Map
 import           Evaluator
 import           SExpr
 
+-- Error thrown when the number of arguments to a functions is wrong.
 airityError :: IO SExpr
 airityError = (return . Err) "Wrong airity!"
 
+-- Type error.
 expectingError :: String -> IO SExpr
 expectingError s = return . Err $ "Function expecting " ++ s ++ "!"
 
+-- Int -> Int -> Int function wrapped into a primitive function.
 intintPrim :: (Int -> Int -> Int) -> [SExpr] -> IO SExpr
 intintPrim fun args
     | length args < 2    = airityError
     | all isInteger args = return . Integer $ foldl1 fun (map unpackInteger args)
     | otherwise          = expectingError "integers"
 
+-- Integer division.
 divPrim :: [SExpr] -> IO SExpr
 divPrim args
     | all isInteger args &&
@@ -26,11 +30,12 @@ divPrim args
     | all isInteger args       = (return . Err) "Division by zero!"
     | otherwise                = expectingError "integers"
 
--- Equal an not equal function wrapper.
+-- Equal and not equal function wrapper.
 eqneqPrim :: (SExpr -> SExpr -> Bool) -> [SExpr] -> IO SExpr
 eqneqPrim fun [exp1, exp2] = return . Bool $ fun exp1 exp2
 eqneqPrim _ _              = airityError
 
+-- Wrapper for functions that compare ints.
 intComparisonPrim :: (Int -> Int -> Bool) -> [SExpr] -> IO SExpr
 intComparisonPrim fun [Integer i1, Integer i2] = return . Bool $ fun i1 i2
 intComparisonPrim _ [_, _]                     = expectingError "two integers"
@@ -56,7 +61,7 @@ consPrim [val, List l] = return . List $ val : l
 consPrim [_, _]        = expectingError "value and list"
 consPrim _             = airityError
 
--- Concat strings or lists.
+-- Concat/paste strings or lists.
 concatPrim :: [SExpr] -> IO SExpr
 concatPrim args
     | length args < 2   = airityError
@@ -74,16 +79,10 @@ throwPrim _                = airityError
 printPrim :: [SExpr] -> IO SExpr
 printPrim args = putStrLn (concatMap show args) >> return Nil
 
--- Read string from stdin.
+-- Read string from stdin. TODO
 readPrim :: [SExpr] -> IO SExpr
 readPrim [] = fmap String getLine
 readPrim _  = airityError
-
--- Don't evaluate quoted lists.
-quotePrim :: [SExpr] -> IO SExpr
-quotePrim [list@(List _)] = return list
-quotePrim [_]             = expectingError "list"
-quotePrim _               = airityError
 
 -- Environment containing primitives.
 primitiveEnv :: Environment
@@ -105,5 +104,4 @@ primitiveEnv = Map.fromList [ ("+",      Primitive $ intintPrim (+))
                             , ("throw",  Primitive throwPrim)
                             , ("print",  Primitive printPrim)
                             , ("read",   Primitive printPrim)
-                            , ("quote",  Primitive quotePrim)
                             ]

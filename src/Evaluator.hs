@@ -32,10 +32,13 @@ evalList env expressions =
       -- Can't call an integer, a string, a bool or nil
       Integer _ : _ ->
           return (env, Err "Can't call an integer!")
+
       String _ : _ ->
           return (env, Err "Can't call a string!")
+
       Bool _ : _ ->
           return (env, Err "Can't call a bool!")
+
       Nil : _ ->
           return (env, Err "Can't call nil!")
 
@@ -54,7 +57,7 @@ evalList env expressions =
                (env', Nil)        -> eval env el
                (env', _)          -> eval env th
 
-      -- Function definition.
+      -- Function declaration.
       [Atom "fun", List args, List body] ->
           return (env, if not . all isAtom $ args
                        then Err "Bad function declaration!"
@@ -62,18 +65,21 @@ evalList env expressions =
             where
               toString (Atom s) = s
 
-      -- Evaluate string(s).
-      Atom "eval" : args
-          | all isString args ->
-          evalMulti env $ concatMap (readSExpr . unpackString) args
+      -- Bad function declaration.
+      Atom "fun" : _ ->
+          return (env, Err "Bad function declaration!")
 
-      -- Evaluate quoted list.
-      Atom "eval" : [List [Atom "quote", List l]] ->
-          evalList env l
+      -- Eval special form
+      Atom "eval" : args ->
+          evalSpecialForm env args
 
-      -- Bad eval.
-      Atom "eval" : _ ->
-          return (env, Err "Can't eval that!")
+      -- Quoted lists.
+      Atom "quote" : [list@(List _)] ->
+          return (env, list)
+
+      -- Bad quote.
+      Atom "quote" : _ ->
+          return (env, Err "This is not how you use quote!")
 
       -- Primitive function call.
       Primitive p : args ->
@@ -82,27 +88,25 @@ evalList env expressions =
 
       -- Function call.
       fun@Fun {} : args ->
-          callFun env fun args
+          callFunction env fun args
 
       -- Atom that needs to be resolved.
       Atom a : rest ->
-          do (_, resolved) <- eval env (Atom a)
-             if resolved == Nil
-               then return (env, Err $ "Unknown function \"" ++ a ++ "\"!")
-               else evalList env (resolved : rest)
-
-      -- Errors propagate.
-      err@(Err _) : _ ->
-          return (env, err)
+          do resolved <- fmap snd $ eval env (Atom a)
+             evalList env (resolved : rest)
 
       -- Expression that needs to be evaluated.
       exp@(List _) : rest ->
           do (env', resolved) <- eval env exp
              evalList env' (resolved : rest)
 
+      -- Errors propagate.
+      err@(Err _) : _ ->
+          return (env, err)
+
 -- Call a function.
-callFun :: Environment -> SExpr -> [SExpr] -> IO EnvSExpr
-callFun env fun args
+callFunction :: Environment -> SExpr -> [SExpr] -> IO EnvSExpr
+callFunction env fun args
     | not $ isFun fun             = error "Trying to call a non-function!"
     | length args /= length names = return (env, Err "Wrong airity!")
     | otherwise =
@@ -111,3 +115,29 @@ callFun env fun args
            eval (Map.unions [argEnv, closure fun, env]) $ body fun
     where
       names = argNames fun
+
+-- The eval command can read and evaluate strings and evaluate (quoted) lists.
+evalSpecialForm :: Environment -> [SExpr] -> IO EnvSExpr
+evalSpecialForm env expressions =
+    case expressions of
+
+      -- Evaluate string(s).
+      args | all isString args ->
+          evalMulti env $ concatMap (readSExpr . unpackString) args
+
+      -- Evaluate quoted list.
+      [List [Atom "quote", List l]] ->
+          evalList env l
+
+      -- Evaluate list.
+      [List l] ->
+          evalList env l
+
+      -- Eval atom else.
+      [atom@(Atom _)] ->
+           do result <- fmap snd $ eval env atom
+              evalList env [Atom "eval", result]
+
+      -- Bad eval.
+      _ ->
+          return (env, Err "Can't eval that!")

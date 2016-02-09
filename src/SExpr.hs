@@ -1,5 +1,6 @@
 module SExpr
     ( Environment
+    , resolveName
     , EnvSExpr
     , SExpr (..)
     , isAtom
@@ -12,12 +13,18 @@ where
 import           Data.Foldable (toList)
 import           Data.HashMap.Lazy (HashMap)
 import qualified Data.HashMap.Lazy as Map
+import           Data.Maybe
 import           Data.Vector.Persistent (Vector)
 import qualified Data.Vector.Persistent as Vector
 import           Text.Parsec hiding (spaces, space)
 
 -- An environment is a mapping from names to expressions.
 type Environment = HashMap String SExpr
+
+-- Find variable in environment.
+resolveName :: Environment -> String -> SExpr
+resolveName env name = fromMaybe Nil (Map.lookup name env)
+
 
 -- Environment, value pair.
 type EnvSExpr = (Environment, SExpr)

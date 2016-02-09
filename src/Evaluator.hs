@@ -23,16 +23,17 @@ evalMulti env (ex:exs) = let (env', _) = eval env ex
 eval :: Environment -> SExpr -> EnvSExpr
 eval env sexpr =
     case sexpr of
-      (Atom a)  -> (env, find env a)
+      (Atom a)  -> (env, resolveName env a)
       (Vec vec) -> (env, Vec . fmap (snd . eval env) $ vec)
       (List l)  -> evalList env l
       sexpr     -> (env, sexpr)
 
--- "Call" a list. If the first argument is an atom, it's treated as a function,
--- if it's a vector, it's indexed.
+-- Evaluate a list. This can be a function call, vector indexing, or a special
+-- form such as if-then-else.
 evalList :: Environment -> [SExpr] -> EnvSExpr
 evalList env expressions =
     case expressions of
+
       -- Can't call an integer, a string, a bool or nil
       Integer _ : _ ->
           (env, Err "Can't call an integer!")
@@ -54,14 +55,14 @@ evalList env expressions =
           in
             (env', rhs)
 
-      -- if-then-else
+      -- if-then-else.
       [Atom "if", pred, th, el] ->
           case eval env pred of
             (env', Bool False) -> eval env el
             (env', Nil)        -> eval env el
             (env', _)          -> eval env th
 
-      -- Function definition
+      -- Function definition.
       [Atom "fn", List args, List body] ->
           (env, if not . all isAtom $ args
                 then Err "Bad function declaration!"
@@ -69,15 +70,15 @@ evalList env expressions =
             where
               toString (Atom s) = s
 
-      -- Primitive
+      -- Primitive function call.
       Primitive p : args ->
           (env, p . map (snd . eval env) $ args)
 
-      -- Function call
+      -- Function call.
       fun@Fun {} : args ->
           callFun env fun args
 
-      -- Atom that needs to be resolved
+      -- Atom that needs to be resolved.
       Atom a : rest ->
           let (_, resolved) = eval env (Atom a)
           in
@@ -85,15 +86,11 @@ evalList env expressions =
             then (env, Err $ "Unknown function \"" ++ a ++ "\"!")
             else evalList env (resolved : rest)
 
-      -- Expression that needs to be evaluated
+      -- Expression that needs to be evaluated.
       exp@(List _) : rest ->
           let (env', resolved) = eval env exp
           in
             evalList env' (resolved : rest)
-
--- Find variable in environment.
-find :: Environment -> String -> SExpr
-find env name = fromMaybe Nil (Map.lookup name env)
 
 -- Call a function.
 callFun :: Environment -> SExpr -> [SExpr] -> EnvSExpr

@@ -32,10 +32,13 @@ evalList env expressions =
       -- Can't call an integer, a string, a bool or nil
       Integer _ : _ ->
           return (env, Err "Can't call an integer!")
+
       String _ : _ ->
           return (env, Err "Can't call a string!")
+
       Bool _ : _ ->
           return (env, Err "Can't call a bool!")
+
       Nil : _ ->
           return (env, Err "Can't call nil!")
 

@@ -4,10 +4,15 @@ module SExpr
     , EnvSExpr
     , SExpr (..)
     , isAtom
+    , isList
     , isInteger
+    , isString
     , isBool
     , isErr
-    , isFun )
+    , isFun
+    , unpackInteger
+    , unpackString
+    , unpackList )
 where
 
 import           Data.Foldable (toList)
@@ -21,7 +26,8 @@ type Environment = HashMap String SExpr
 
 -- Find variable in environment.
 resolveName :: Environment -> String -> SExpr
-resolveName env name = fromMaybe Nil (Map.lookup name env)
+resolveName env name = fromMaybe (Err $ "Unknown variable \"" ++ name ++ "\"!")
+                                 (Map.lookup name env)
 
 
 -- Environment, value pair.
@@ -34,7 +40,7 @@ data SExpr = Atom String
            | String String
            | Bool Bool
            | Nil
-           | Primitive ([SExpr] -> SExpr)
+           | Primitive ([SExpr] -> IO SExpr)
            | Err String
            | Fun { argNames :: [String]
                  , closure  :: Environment
@@ -59,12 +65,16 @@ instance Show SExpr where
     show Nil            = "nil"
     show (Primitive _)  = "<primitive>"
     show (Err e)        = "Error: " ++ e
-    show (Fun args _ _) = "(fn (" ++ unwords args ++ ") ...)"
+    show (Fun args _ _) = "(fun (" ++ unwords args ++ ") ...)"
 
 -- Check types of SExprs.
 isAtom :: SExpr -> Bool
 isAtom (Atom _) = True
 isAtom _        = False
+
+isList :: SExpr -> Bool
+isList (List _) = True
+isList _        = False
 
 isInteger :: SExpr -> Bool
 isInteger (Integer _) = True
@@ -85,3 +95,19 @@ isErr _       = False
 isFun :: SExpr -> Bool
 isFun Fun {} = True
 isFun _      = False
+
+
+-- Unpack int from SExpr.
+unpackInteger :: SExpr -> Int
+unpackInteger (Integer i) = i
+unpackInteger _           = error "Can't unpack this to Int"
+
+-- Unpack string from SExpr.
+unpackString :: SExpr -> String
+unpackString (String s) = s
+unpackString _          = error "Can't unpack this to String"
+
+-- Unpack list from SExpr.
+unpackList :: SExpr -> [SExpr]
+unpackList (List l) = l
+unpackList _        = error "Can't unpack this to List"

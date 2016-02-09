@@ -55,7 +55,7 @@ list = List <$> container ("(", ")")
 -- Parse a quoted list.
 quotList :: Parsec String () SExpr
 quotList = List <$> (container ("'(", ")") >>= \l ->
-                         return $ (Atom "quote") : [List l])
+                         return $ Atom "quote" : [List l])
 
 -- Parse a number.
 int :: Parsec String () SExpr
@@ -74,7 +74,8 @@ expr = quotList <|> list <|> atom <|> int <|> str <?> "expression"
 
 -- Read S-Expression from string.
 readSExpr :: String -> [SExpr]
-readSExpr text = either (\e -> [Err (show e)]) id (parse exprs "" text)
+readSExpr text = either (\e -> [Err $ "Parse error in " ++ show e])
+                        id (parse exprs "" text)
     where
       exprs = do spaces
                  expr `sepEndBy` spaces

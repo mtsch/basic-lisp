@@ -53,6 +53,11 @@ evalListBody env expressions =
       Atom "get!" : args ->
           getSF env args
 
+      -- Atom that needs to be resolved.
+      Atom a : rest ->
+          do resolved <- snd <$> eval env (Atom a)
+             evalListBody env (resolved : rest)
+
       -- Primitive function call.
       Primitive p : args ->
           do result <- p =<< mapM (fmap snd . eval env) args
@@ -61,11 +66,6 @@ evalListBody env expressions =
       -- Function call.
       fun@Fun {} : args ->
           callFunction env fun args
-
-      -- Atom that needs to be resolved.
-      Atom a : rest ->
-          do resolved <- snd <$> eval env (Atom a)
-             evalListBody env (resolved : rest)
 
       -- Expression that needs to be evaluated.
       expr@(List _) : rest ->

@@ -113,22 +113,22 @@ isFun _      = False
 isValue :: SExpr -> Bool
 isValue v = isInt v || isString v || isBool v
 
--- Unpack int from Int.
+-- Unpack an int from Int.
 unpackInt :: SExpr -> Int
 unpackInt (Int i) = i
 unpackInt _       = error "Can't unpack this to Int"
 
--- Unpack string from String.
+-- Unpack a string from String.
 unpackString :: SExpr -> String
 unpackString (String s) = s
 unpackString _          = error "Can't unpack this as String!"
 
--- Unpack list from List.
+-- Unpack a list from List.
 unpackList :: SExpr -> [SExpr]
 unpackList (List l) = l
 unpackList _        = error "Can't unpack this as List!"
 
--- Unpack string from Atom.
+-- Unpack a string from Atom.
 unpackAtom :: SExpr -> String
 unpackAtom (Atom a) = a
 unpackAtom _        = error "Can't unpack this as Atom!"

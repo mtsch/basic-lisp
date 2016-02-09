@@ -1,7 +1,9 @@
 {-# OPTIONS_GHC -Wall #-}
 module SExpr
-    ( Environment
-    , resolveName
+    ( Environment (..)
+    , Scope
+    , addVar
+    , resolveVar
     , EnvSExpr
     , SExpr (..)
     , isAtom
@@ -22,14 +24,25 @@ import           Data.HashMap.Lazy (HashMap)
 import qualified Data.HashMap.Lazy as Map
 import           Data.Maybe
 
--- An environment is a mapping from names to expressions.
-type Environment = HashMap String SExpr
+import           Data.IORef
+
+-- The scope is a mapping from names to expressions.
+type Scope = HashMap String SExpr
+
+-- An environment is scope and a reference to the mutable variables.
+data Environment = Env { scope :: Scope
+                       , refs  :: IORef (Scope) }
+
+-- Add variable to environment.
+addVar :: String -> SExpr -> Environment -> Environment
+addVar name value (Env {scope = s, refs = r}) =
+    Env { scope = Map.insert name value s
+        , refs  = r }
 
 -- Find variable in environment.
-resolveName :: Environment -> String -> SExpr
-resolveName env name = fromMaybe (Err $ "Unknown symbol \"" ++ name ++ "\"!")
-                                 (Map.lookup name env)
-
+resolveVar :: String -> Environment -> SExpr
+resolveVar name env = fromMaybe (Err $ "Unknown symbol \"" ++ name ++ "\"!")
+                                (Map.lookup name $ scope env)
 
 -- Environment, value pair.
 type EnvSExpr = (Environment, SExpr)
@@ -44,7 +57,7 @@ data SExpr = Atom String
            | Primitive ([SExpr] -> IO SExpr)
            | Err String
            | Fun { argNames :: [String]
-                 , closure  :: Environment
+                 , closure  :: Scope
                  , body     :: SExpr }
 
 instance Eq SExpr where
@@ -115,7 +128,7 @@ unpackList :: SExpr -> [SExpr]
 unpackList (List l) = l
 unpackList _        = error "Can't unpack this as List!"
 
--- Get the value of Atom.
+-- Unpack string from Atom.
 unpackAtom :: SExpr -> String
 unpackAtom (Atom a) = a
 unpackAtom _        = error "Can't unpack this as Atom!"

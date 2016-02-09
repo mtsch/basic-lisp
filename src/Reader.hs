@@ -1,11 +1,11 @@
+{-# OPTIONS_GHC -Wall #-}
 module Reader
     ( readSExpr )
 where
 
-import           Control.Applicative ((<$>))
-import           Text.Parsec hiding (spaces, space)
+import Text.Parsec hiding (spaces, space)
 
-import           SExpr
+import SExpr
 
 -- Allowed symbols.
 symbol :: Parsec String () Char
@@ -17,9 +17,9 @@ space = oneOf " \t\n\r,"
 
 -- Skip comment
 comment :: Parsec String () ()
-comment = (do char ';'
+comment = (do _ <- char ';'
               skipMany $ noneOf "\n"
-              char '\n'
+              _ <- char '\n'
               return ()) <?> ""
 
 -- Skip spaces.
@@ -30,21 +30,21 @@ spaces = skipMany space >> skipMany comment
 atom :: Parsec String () SExpr
 atom = do first <- symbol <|> letter
           rest  <- many (symbol <|> alphaNum)
-          let atom = first : rest
-          return $ case atom of
+          let name = first : rest
+          return $ case name of
                      "true"  -> Bool True
                      "false" -> Bool False
                      "nil"   -> Nil
-                     _       -> Atom atom
+                     _       -> Atom name
 
 -- Parse a container delimited by l and r.
 -- l and r can't start or end with valid symbols!
 container :: (String, String) -> Parsec String () [SExpr]
 container (l, r) = do spaces
-                      string l
+                      _ <- string l
                       spaces
                       contents <- expr `sepEndBy` spaces
-                      string r
+                      _ <- string r
                       spaces
                       return contents
 
@@ -63,10 +63,10 @@ int = (Int . read) <$> many1 digit
 
 -- Parse a string.
 str :: Parsec String () SExpr
-str = do char '"'
-         str <- many $ noneOf "\""
-         char '"'
-         (return . String) str
+str = do _ <- char '"'
+         value <- many $ noneOf "\""
+         _ <- char '"'
+         (return . String) value
 
 -- Parse an expression.
 expr :: Parsec String () SExpr

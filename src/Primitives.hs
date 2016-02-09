@@ -1,10 +1,11 @@
+{-# OPTIONS_GHC -Wall #-}
 module Primitives
     ( primitiveEnv )
 where
 
+import           Control.Exception.Base
 import qualified Data.HashMap.Lazy as Map
 
-import           Evaluator
 import           SExpr
 
 -- Error thrown when the number of arguments to a functions is wrong.
@@ -84,8 +85,20 @@ readPrim :: [SExpr] -> IO SExpr
 readPrim [] = fmap String getLine
 readPrim _  = airityError
 
--- Environment containing primitives.
-primitiveEnv :: Environment
+-- Read a file.
+slurpPrim :: [SExpr] -> IO SExpr
+slurpPrim [String filename] = catch (fmap String (readFile filename))
+                                    (openFileHandler filename)
+
+slurpPrim [_] = expectingError "string"
+slurpPrim _   = airityError
+
+-- Error handler for slurpPrim.
+openFileHandler :: String -> IOError -> IO SExpr
+openFileHandler name _ = return . Err $ "File \"" ++ name ++ "\" not found!"
+
+-- Environment containing primitive functions.
+primitiveEnv :: Scope
 primitiveEnv = Map.fromList [ ("+",      Primitive $ intintPrim (+))
                             , ("-",      Primitive $ intintPrim (-))
                             , ("*",      Primitive $ intintPrim (*))
@@ -103,5 +116,6 @@ primitiveEnv = Map.fromList [ ("+",      Primitive $ intintPrim (+))
                             , ("concat", Primitive concatPrim)
                             , ("throw",  Primitive throwPrim)
                             , ("print",  Primitive printPrim)
-                            , ("read",   Primitive printPrim)
+                            , ("read",   Primitive readPrim)
+                            , ("slurp",  Primitive slurpPrim)
                             ]

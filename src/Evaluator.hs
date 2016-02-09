@@ -2,7 +2,9 @@
 module Evaluator
 where
 
+import           Data.IORef
 import qualified Data.HashMap.Lazy as Map
+import           Data.Maybe
 
 import           SExpr
 import           Reader
@@ -12,14 +14,14 @@ import           Reader
 evalMulti :: Environment -> [SExpr] -> IO EnvSExpr
 evalMulti env []       = return (env, Nil)
 evalMulti env [ex]     = eval env ex
-evalMulti env (ex:exs) = do (env', _) <- eval env ex
+evalMulti env (ex:exs) = do env' <- fst <$> eval env ex
                             evalMulti env' exs
 
 -- Evaluate an S-Expression.
 eval :: Environment -> SExpr -> IO EnvSExpr
 eval env expression =
     case expression of
-      (Atom a) -> return (env, resolveName env a)
+      (Atom a) -> return (env, resolveVar a env)
       (List l) -> evalListBody env l
       value    -> return (env, value)
 
@@ -32,7 +34,7 @@ evalListBody env expressions =
       -- Variable definition.
       [Atom "def", Atom name, sexpr] ->
           do (_, rhs) <- eval env sexpr
-             let env' = Map.insert name rhs env
+             let env' = addVar name rhs env
              return (env', rhs)
 
       -- if-then-else.
@@ -44,11 +46,15 @@ evalListBody env expressions =
                (env', Nil)        -> eval env' el
                (env', _)          -> eval env' th
 
+      -- Bad if
+      Atom "if" : _ ->
+          return (env, Err "Wrong airity!")
+
       -- Function declaration.
       [Atom "fun", List args, List expr] ->
           return (env, if not . all isAtom $ args
                        then Err "Bad function declaration!"
-                       else Fun (map unpackAtom args) env (List expr))
+                       else Fun (map unpackAtom args) (scope env) (List expr))
 
       -- Bad function declaration.
       Atom "fun" : _ ->
@@ -59,12 +65,32 @@ evalListBody env expressions =
           evalSpecialForm env args
 
       -- Quoted lists.
-      Atom "quote" : [list@(List _)] ->
+      [Atom "quote", list@(List _)] ->
           return (env, list)
 
       -- Bad quote.
       Atom "quote" : _ ->
           return (env, Err "This is not how you use quote!")
+
+      -- Set a reference.
+      [Atom "set!", Atom name, expression] ->
+          do value <- snd <$> eval env expression
+             modifyIORef' (refs env) (Map.insert name value)
+             return (env, value)
+
+      -- Bad set.
+      Atom "set!" : _ ->
+          return (env, Err "\"set!\" takes an atom and a value!")
+
+      -- Get the value of a reference.
+      [Atom "get!", Atom name] ->
+          do ioRefs <- readIORef (refs env)
+             let value = fromMaybe Nil (Map.lookup name ioRefs)
+             return (env, value)
+
+      -- Bad get.
+      Atom "get!" : _ ->
+          return (env, Err "\"get!\" takes an atom!")
 
       -- Primitive function call.
       Primitive p : args ->
@@ -114,7 +140,10 @@ callFunction env fun args
     | otherwise =
         do evaldArgs <- mapM (fmap snd . eval env) args
            let argEnv = Map.fromList $ ("recur", fun) : zip names evaldArgs
-           eval (Map.unions [argEnv, closure fun, env]) $ body fun
+           let env'   = Env (Map.unions [argEnv, closure fun, scope env])
+                            (refs env)
+           result <- snd <$> eval env' (body fun)
+           return (env, result)
     where
       names = argNames fun
 

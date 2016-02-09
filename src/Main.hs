@@ -14,7 +14,7 @@ startScope :: Scope
 startScope = primitiveEnv
 
 main :: IO ()
-main = do ioRefs <- newIORef (Map.empty)
+main = do ioRefs <- newIORef Map.empty
           mainLoop (Env startScope ioRefs)
 
 -- The REPL

@@ -32,26 +32,18 @@ evalListBody env expressions =
     case expressions of
 
       -- Special forms.
-      Atom "def" : args ->
-          defSF env args
+      Atom "def"   : args -> defSF env args
+      Atom "if"    : args -> ifSF env args
+      Atom "fun"   : args -> funSF env args
+      Atom "eval"  : args -> evalSF env args
+      Atom "quote" : args -> quoteSF env args
+      Atom "set!"  : args -> setSF env args
+      Atom "get!"  : args -> getSF env args
 
-      Atom "if" : args ->
-          ifSF env args
-
-      Atom "fun" : args ->
-          funSF env args
-
-      Atom "eval" : args ->
-          evalSF env args
-
-      Atom "quote" : args ->
-          quoteSF env args
-
-      Atom "set!" : args ->
-          setSF env args
-
-      Atom "get!" : args ->
-          getSF env args
+      -- Atom that needs to be resolved.
+      Atom a : rest ->
+          do resolved <- snd <$> eval env (Atom a)
+             evalListBody env (resolved : rest)
 
       -- Primitive function call.
       Primitive p : args ->
@@ -61,11 +53,6 @@ evalListBody env expressions =
       -- Function call.
       fun@Fun {} : args ->
           callFunction env fun args
-
-      -- Atom that needs to be resolved.
-      Atom a : rest ->
-          do resolved <- snd <$> eval env (Atom a)
-             evalListBody env (resolved : rest)
 
       -- Expression that needs to be evaluated.
       expr@(List _) : rest ->
@@ -77,17 +64,10 @@ evalListBody env expressions =
           return (env, err)
 
       -- Can't call an integer, a string, a bool or nil
-      (Int _) : _ ->
-          return (env, Err "Can't call an int!")
-
-      (String _) : _ ->
-          return (env, Err "Can't call a string!")
-
-      (Bool _) : _ ->
-          return (env, Err "Can't call a bool!")
-
-      Nil : _ ->
-          return (env, Err "Can't call nil!")
+      Int _    : _ -> return (env, Err "Can't call an int!")
+      String _ : _ -> return (env, Err "Can't call a string!")
+      Bool _   : _ -> return (env, Err "Can't call a bool!")
+      Nil      : _ -> return (env, Err "Can't call nil!")
 
       -- Empty list doesn't evaluate.
       [] ->
@@ -116,7 +96,7 @@ sfError name = Err $ "That's not how you use \"" ++ name ++ "\"!"
 defSF :: Environment -> [SExpr] -> IO EnvSExpr
 defSF env expressions =
     case expressions of
-      [Atom "def", Atom name, sexpr] ->
+      [Atom name, sexpr] ->
           do (_, rhs) <- eval env sexpr
              let env' = addVar name rhs env
              return (env', rhs)

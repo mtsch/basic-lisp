@@ -3,7 +3,6 @@ module Reader
 where
 
 import           Control.Applicative ((<$>))
-import qualified Data.Vector.Persistent as Vector
 import           Text.Parsec hiding (spaces, space)
 
 import           SExpr
@@ -53,9 +52,10 @@ container (l, r) = do spaces
 list :: Parsec String () SExpr
 list = List <$> container ("(", ")")
 
--- Parse a persistent vector.
-vec :: Parsec String () SExpr
-vec = (Vec . Vector.fromList) <$> container ("[", "]")
+-- Parse a quoted list.
+quotList :: Parsec String () SExpr
+quotList = List <$> (container ("'(", ")") >>= \l ->
+                         return $ (Atom "quote") : [List l])
 
 -- Parse a number.
 int :: Parsec String () SExpr
@@ -70,7 +70,7 @@ str = do char '"'
 
 -- Parse an expression.
 expr :: Parsec String () SExpr
-expr = atom <|> list <|> vec <|> int <|> str <?> "expression"
+expr = quotList <|> list <|> atom <|> int <|> str <?> "expression"
 
 -- Read S-Expression from string.
 readSExpr :: String -> [SExpr]

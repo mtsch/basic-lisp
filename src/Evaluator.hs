@@ -4,8 +4,6 @@ where
 import           Data.HashMap.Lazy (HashMap, (!))
 import qualified Data.HashMap.Lazy as Map
 import           Data.Maybe
-import           Data.Vector.Persistent (Vector)
-import qualified Data.Vector.Persistent as Vector
 
 import           SExpr
 import           Reader
@@ -24,7 +22,6 @@ eval :: Environment -> SExpr -> EnvSExpr
 eval env sexpr =
     case sexpr of
       (Atom a)  -> (env, resolveName env a)
-      (Vec vec) -> (env, Vec . fmap (snd . eval env) $ vec)
       (List l)  -> evalList env l
       sexpr     -> (env, sexpr)
 
@@ -44,9 +41,8 @@ evalList env expressions =
       Nil : _ ->
           (env, Err "Can't call nil!")
 
-      -- Vector indexing.
-      [Vec vec, Integer i] ->
-          (env, fromMaybe Nil (Vector.index vec i))
+      -- Quoted list.
+      [Atom "quote", l] -> (env, l)
 
       -- Variable definition.
       [Atom "def", Atom name, sexpr] ->
@@ -59,6 +55,7 @@ evalList env expressions =
       [Atom "if", pred, th, el] ->
           case eval env pred of
             (env', Bool False) -> eval env el
+            (env', List [])    -> eval env el
             (env', Nil)        -> eval env el
             (env', _)          -> eval env th
 

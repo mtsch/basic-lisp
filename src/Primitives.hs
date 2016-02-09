@@ -3,6 +3,7 @@ module Primitives
 where
 
 import qualified Data.HashMap.Lazy as Map
+import qualified Data.Vector.Persistent as Vector
 
 import           SExpr
 
@@ -10,10 +11,10 @@ airityError :: SExpr
 airityError = Err "Wrong airity!"
 
 -- Two argument fun on Int to two or more argument primitive
-intPrimitive :: (Int -> Int -> Int) -> [SExpr] -> SExpr
-intPrimitive _ []       = airityError
-intPrimitive _ [_]      = airityError
-intPrimitive fun (e:es) =
+intintPrimitive :: (Int -> Int -> Int) -> [SExpr] -> SExpr
+intintPrimitive _ []       = airityError
+intintPrimitive _ [_]      = airityError
+intintPrimitive fun (e:es) =
     case e of
       (Integer i) -> aux i es
           where
@@ -31,13 +32,32 @@ comparisonFun :: (SExpr -> SExpr -> Bool) -> [SExpr] -> SExpr
 comparisonFun fun [exp1, exp2] = Bool $ fun exp1 exp2
 comparisonFun _ _              = airityError
 
+headPrimitive :: [SExpr] -> SExpr
+headPrimitive [List []] = Err "Function expecting non-empty list!"
+headPrimitive [List l]  = head l
+headPrimitive [_]       = Err "Function expecting list!"
+headPrimitive _         = airityError
+
+tailPrimitive :: [SExpr] -> SExpr
+tailPrimitive [List l] = List $ tail l
+tailPrimitive [_]      = Err "Function expecting list!"
+tailPrimitive _        = airityError
+
+consPrimitive :: [SExpr] -> SExpr
+consPrimitive [val, List l] = List $ val : l
+consPrimitive [_, _]        = Err "Function expecting value and list!"
+consPrimitive _             = airityError
+
 -- Environment containing primitives.
 primitiveEnv :: Environment
-primitiveEnv = Map.fromList [ ("+",    Primitive $ intPrimitive (+))
-                            , ("-",    Primitive $ intPrimitive (-))
-                            , ("*",    Primitive $ intPrimitive (*))
-                            , ("div",  Primitive $ intPrimitive div)
-                            , ("rem",  Primitive $ intPrimitive rem)
+primitiveEnv = Map.fromList [ ("+",    Primitive $ intintPrimitive (+))
+                            , ("-",    Primitive $ intintPrimitive (-))
+                            , ("*",    Primitive $ intintPrimitive (*))
+                            , ("div",  Primitive $ intintPrimitive div)
+                            , ("rem",  Primitive $ intintPrimitive rem)
                             , ("=",    Primitive $ comparisonFun (==))
                             , ("not=", Primitive $ comparisonFun (/=))
+                            , ("head", Primitive $ headPrimitive)
+                            , ("tail", Primitive $ tailPrimitive)
+                            , ("cons", Primitive $ consPrimitive)
                             ]

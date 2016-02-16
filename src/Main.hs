@@ -4,6 +4,7 @@ where
 
 import qualified Data.HashMap.Lazy as Map
 import           Data.IORef
+import           System.IO
 
 import           Evaluator
 import           Reader
@@ -15,15 +16,19 @@ startScope = primitiveEnv
 
 main :: IO ()
 main = do ioRefs <- newIORef Map.empty
-          mainLoop (Env startScope ioRefs)
+          repl (Env startScope ioRefs)
+
+prompt :: String -> IO String
+prompt p = do putStr p
+              hFlush stdout
+              getLine
 
 -- The REPL
-mainLoop :: Environment -> IO ()
-mainLoop env = do putStr "=> "
-                  input <- getLine
-                  let ast = readSExpr (input ++ "\n")
-                  if any isErr ast
-                    then (print . head . filter isErr) ast >> mainLoop env
-                    else do (env', res) <- evalMulti env ast
-                            print res
-                            mainLoop env'
+repl :: Environment -> IO ()
+repl env = do input <- prompt "=> "
+              let ast = readSExpr (input ++ "\n")
+              if any isErr ast
+                then (print . head . filter isErr) ast >> repl env
+                else do (env', res) <- evalMulti env ast
+                        print res
+                        repl env'

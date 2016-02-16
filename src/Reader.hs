@@ -59,7 +59,9 @@ str = liftA String $ char '"' *> many (noneOf "\"") <* char '"'
 
 -- Parse an expression.
 expr :: Parsec String () SExpr
-expr = quotList <|> list <|> atom <|> int <|> str <?> "expression"
+expr = ex <* (optionMaybe eof <?> "") <?> "expression"
+    where
+      ex = (quotList <|> list <|> atom <|> int <|> str)
 
 -- Read S-Expression from string.
 readSExpr :: String -> [SExpr]

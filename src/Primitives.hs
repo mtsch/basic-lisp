@@ -70,6 +70,9 @@ concatPrim args
     | all isList args   = return . List   $ foldl1 (++) $ map unpackList args
     | otherwise         = expectingError "strings or lists"
 
+stringPrim :: [SExpr] -> IO SExpr
+stringPrim = return . String . unwords . map show
+
 -- Throw an error.
 throwPrim :: [SExpr] -> IO SExpr
 throwPrim [String message] = (return . Err) message
@@ -114,6 +117,7 @@ primitiveEnv = Map.fromList [ ("+",      Primitive $ intintPrim (+))
                             , ("tail",   Primitive tailPrim)
                             , ("cons",   Primitive consPrim)
                             , ("concat", Primitive concatPrim)
+                            , ("string", Primitive $ stringPrim)
                             , ("throw",  Primitive throwPrim)
                             , ("print",  Primitive printPrim)
                             , ("read",   Primitive readPrim)

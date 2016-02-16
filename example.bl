@@ -1,0 +1,49 @@
+; some logical operators
+(def or (fun (x y) (if x true (if y true false))))
+(def not (fun (x) (if x false true)))
+
+; define a variable.
+(def one 1)
+
+; define a recursive fibonacci function.
+(def fib (fun (n)
+           (if (or (= n 0) (= n 1))
+             1
+             (+ (recur (- n one)) (recur (- n 2))))))
+
+; functions have a scope that is created when they are defined,
+; variables defined after them don't affect them.
+(def n (throw "You tried to use n!"))
+(def one 17)
+
+; map on a function to a list
+(def map (fun (f l)
+           (if (not l)
+             '()
+             (cons (f (head l)) (recur f (tail l))))))
+
+; print the first 18 fibs.
+(def fibs (map fib '(0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17)))
+(print fibs)
+
+; set the counter ref to 0
+(set! counter 0)
+
+; refs are global and separate from regular variables
+(def counter "You tried to use the wrong counter!")
+
+; increment a counter
+(def incr (fun () (set! counter (+ 1 (get! counter)))))
+
+; print the current counter value, increment three times and print again.
+(print (get! counter))
+(incr)
+(incr)
+(incr)
+(print (get! counter))
+
+; read user input and compute the fibonacci number.
+(print "Input a number.")
+(def input (read))
+(print (concat "The " input "-th fibonacci number is: "
+               (string (fib (eval input)))))

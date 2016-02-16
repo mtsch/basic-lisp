@@ -31,6 +31,10 @@ evalListBody :: Environment -> [SExpr] -> IO EnvSExpr
 evalListBody env expressions =
     case expressions of
 
+      -- Errors propagate.
+      err@(Err _) : _       -> return (env, err)
+      _ | any isErr expressions -> print "erros must flow" >> return (env, head $ filter isErr expressions)
+
       -- Special forms.
       Atom "def"   : args -> defSF env args
       Atom "if"    : args -> ifSF env args
@@ -58,10 +62,6 @@ evalListBody env expressions =
       expr@(List _) : rest ->
           do (env', resolved) <- eval env expr
              evalListBody env' (resolved : rest)
-
-      -- Errors propagate.
-      err@(Err _) : _ ->
-          return (env, err)
 
       -- Can't call an integer, a string, a bool or nil
       Int _    : _ -> return (env, Err "Can't call an int!")

@@ -13,7 +13,7 @@ A working lisp-like language interpreter with:
     * printing to and reading from stdout
     * converting expressions to strings
     * evaluating strings
-    * slurping a file
+    * slurping files
     * setting and getting global mutable refs
     * if-then-else expressions
 

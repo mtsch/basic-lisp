@@ -61,7 +61,7 @@ str = liftA String $ char '"' *> many (noneOf "\"") <* char '"'
 expr :: Parsec String () SExpr
 expr = ex <* (optionMaybe eof <?> "") <?> "expression"
     where
-      ex = (quotList <|> list <|> atom <|> int <|> str)
+      ex = quotList <|> list <|> atom <|> int <|> str
 
 -- Read S-Expression from string.
 readSExpr :: String -> [SExpr]

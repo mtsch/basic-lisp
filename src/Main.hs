@@ -11,19 +11,17 @@ import           Reader
 import           Primitives
 import           SExpr
 
+-- The basic starting scope.
 startScope :: Scope
 startScope = primitiveEnv
 
-main :: IO ()
-main = do ioRefs <- newIORef Map.empty
-          repl (Env startScope ioRefs)
-
+-- A prompt that prints, flushes and reads.
 prompt :: String -> IO String
 prompt p = do putStr p
               hFlush stdout
               getLine
 
--- The REPL
+-- The REPL recursively reads from input, evaluates and prints the result.
 repl :: Environment -> IO ()
 repl env = do input <- prompt "=> "
               let ast = readSExpr (input ++ "\n")
@@ -32,3 +30,8 @@ repl env = do input <- prompt "=> "
                 else do (env', res) <- eval env ast
                         print res
                         repl env'
+
+-- main creates an environment and calls repl.
+main :: IO ()
+main = do ioRefs <- newIORef Map.empty
+          repl (Env startScope ioRefs)

@@ -24,9 +24,9 @@ evalListBody :: Environment -> [SExpr] -> IO EnvSExpr
 evalListBody env expressions =
     case expressions of
 
-      -- Errors propagate.
-      err@(Err _) : _       -> return (env, err)
-      _ | any isErr expressions -> print "erros must flow" >> return (env, head $ filter isErr expressions)
+      -- Errors propagate. The first term makes pattern matching exhausitve.
+      err@(Err _) : _           -> return (env, err)
+      _ | any isErr expressions -> return (env, head $ filter isErr expressions)
 
       -- Special forms.
       Atom "def"   : args -> defSF env args
@@ -179,7 +179,7 @@ getSF env expressions =
       _ -> return (env, sfError "get!")
 
 -- Evaluate a multiple S-Expressions in a sequential fashion.
--- Return the last result in list.
+-- Return the last result.
 doSF :: Environment -> [SExpr] -> IO EnvSExpr
 doSF env []       = return (env, Nil)
 doSF env [ex]     = eval env ex

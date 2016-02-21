@@ -64,6 +64,7 @@ expr = ex <* (optionMaybe eof <?> "") <?> "expression"
       ex = quotList <|> list <|> atom <|> int <|> str
 
 -- Read S-Expression from string.
+-- It works by reading a sequence of instructions into a do-block.
 readSExpr :: String -> SExpr
 readSExpr text = either (\e -> Err $ "Parse error in " ++ show e)
                         (\e -> List $ Atom "do" : e)

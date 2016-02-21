@@ -41,7 +41,7 @@ evalListBody env expressions =
       -- Atom that needs to be resolved.
       Atom a : rest ->
           do resolved <- snd <$> eval env (Atom a)
-             evalListBody env (resolved : rest)
+             eval env $ List (resolved : rest)
 
       -- Primitive function call.
       Primitive p : args ->
@@ -55,7 +55,7 @@ evalListBody env expressions =
       -- Expression that needs to be evaluated.
       expr@(List _) : rest ->
           do (env', resolved) <- eval env expr
-             evalListBody env' (resolved : rest)
+             eval env' $ List (resolved : rest)
 
       -- Can't call an integer, a string, a bool or nil
       Int _    : _ -> return (env, Err "Can't call an int!")
@@ -132,28 +132,26 @@ evalSF env expressions =
 
       -- Evaluate quoted list.
       [List [Atom "quote", List l]] ->
-          evalListBody env l
+          eval env (List l)
 
       -- Evaluate list.
-      [List l] ->
-          evalListBody env l
+      [l@(List _)] ->
+          eval env l
 
       -- Eval atom.
       [atom@(Atom _)] ->
            do result <- snd <$> eval env atom
-              evalListBody env [Atom "eval", result]
+              eval env $ List [Atom "eval", result]
 
       -- Bad eval.
       _ -> return (env, Err "Can't eval that!")
 
--- Use quote to make lists that don't evaluate.
+-- Quoted terms do not evaluate.
 quoteSF :: Environment -> [SExpr] -> IO EnvSExpr
 quoteSF env expressions =
     case expressions of
-      [list@(List _)] ->
-          return (env, list)
-
-      _ -> return (env, sfError "quote")
+      [val] -> return (env, val)
+      _     -> return (env, sfError "quote")
 
 -- Set mutable reference.
 setSF :: Environment -> [SExpr] -> IO EnvSExpr

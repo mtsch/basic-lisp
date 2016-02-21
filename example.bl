@@ -13,7 +13,7 @@
 
 ; functions have a scope that is created when they are defined,
 ; variables defined after them don't affect them.
-(def n (throw "You tried to use n!"))
+(def n (error "You tried to use n!"))
 (def one 17)
 
 ; map on a function to a list

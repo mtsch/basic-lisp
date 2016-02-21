@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 module Evaluator
+    ( eval )
 where
 
 import           Data.IORef
@@ -8,14 +9,6 @@ import           Data.Maybe
 
 import           SExpr
 import           Reader
-
--- Evaluate a multiple S-Expressions in a sequential fashion.
--- Return the last result in list.
-evalMulti :: Environment -> [SExpr] -> IO EnvSExpr
-evalMulti env []       = return (env, Nil)
-evalMulti env [ex]     = eval env ex
-evalMulti env (ex:exs) = do env' <- fst <$> eval env ex
-                            evalMulti env' exs
 
 -- Evaluate an S-Expression.
 eval :: Environment -> SExpr -> IO EnvSExpr
@@ -43,6 +36,7 @@ evalListBody env expressions =
       Atom "quote" : args -> quoteSF env args
       Atom "set!"  : args -> setSF env args
       Atom "get!"  : args -> getSF env args
+      Atom "do"    : args -> doSF env args
 
       -- Atom that needs to be resolved.
       Atom a : rest ->
@@ -134,7 +128,7 @@ evalSF env expressions =
     case expressions of
       -- Evaluate string(s).
       args | all isString args ->
-          evalMulti env $ concatMap (readSExpr . unpackString) args
+          eval env $ readSExpr $ concatMap unpackString args
 
       -- Evaluate quoted list.
       [List [Atom "quote", List l]] ->
@@ -183,3 +177,11 @@ getSF env expressions =
 
       -- Bad get.
       _ -> return (env, sfError "get!")
+
+-- Evaluate a multiple S-Expressions in a sequential fashion.
+-- Return the last result in list.
+doSF :: Environment -> [SExpr] -> IO EnvSExpr
+doSF env []       = return (env, Nil)
+doSF env [ex]     = eval env ex
+doSF env (ex:exs) = do env' <- fst <$> eval env ex
+                       doSF env' exs

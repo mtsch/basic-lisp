@@ -64,8 +64,9 @@ expr = ex <* (optionMaybe eof <?> "") <?> "expression"
       ex = quotList <|> list <|> atom <|> int <|> str
 
 -- Read S-Expression from string.
-readSExpr :: String -> [SExpr]
-readSExpr text = either (\e -> [Err $ "Parse error in " ++ show e])
-                        id (parse exprs "" text)
+readSExpr :: String -> SExpr
+readSExpr text = either (\e -> Err $ "Parse error in " ++ show e)
+                        (\e -> List $ Atom "do" : e)
+                        (parse exprs "" text)
     where
       exprs = spaces *> expr `sepEndBy` spaces

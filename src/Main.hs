@@ -27,8 +27,8 @@ prompt p = do putStr p
 repl :: Environment -> IO ()
 repl env = do input <- prompt "=> "
               let ast = readSExpr (input ++ "\n")
-              if any isErr ast
-                then (print . head . filter isErr) ast >> repl env
-                else do (env', res) <- evalMulti env ast
+              if isErr ast
+                then print ast >> repl env
+                else do (env', res) <- eval env ast
                         print res
                         repl env'

@@ -135,16 +135,20 @@ evalSF env expressions =
           eval env (List l)
 
       -- Evaluate list.
-      [l@(List _)] ->
-          eval env l
+      [list@(List _)] ->
+          do result <- snd <$> eval env list
+             eval env $ List [Atom "eval", result]
 
       -- Eval atom.
       [atom@(Atom _)] ->
            do result <- snd <$> eval env atom
               eval env $ List [Atom "eval", result]
 
+      -- A value evals to itself.
+      [val] -> return (env, val)
+
       -- Bad eval.
-      _ -> return (env, Err "Can't eval that!")
+      _ -> return (env, sfError "eval")
 
 -- Quoted terms do not evaluate.
 quoteSF :: Environment -> [SExpr] -> IO EnvSExpr

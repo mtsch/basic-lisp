@@ -20,5 +20,5 @@ A working lisp-like language interpreter with:
 
 To see some examples, run:
 ```
-(def file (slurp "example.bl")) (eval file)
+(eval (slurp "example.bl"))
 ```

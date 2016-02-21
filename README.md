@@ -16,6 +16,7 @@ A working lisp-like language interpreter with:
     * slurping files
     * setting and getting global mutable refs
     * if-then-else expressions
+    * do-blocks
 
 To see some examples, run:
 ```

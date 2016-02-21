@@ -74,10 +74,10 @@ stringPrim :: [SExpr] -> IO SExpr
 stringPrim = return . String . unwords . map show
 
 -- Throw an error.
-throwPrim :: [SExpr] -> IO SExpr
-throwPrim [String message] = (return . Err) message
-throwPrim [_]              = expectingError "string"
-throwPrim _                = airityError
+errorPrim :: [SExpr] -> IO SExpr
+errorPrim [String message] = (return . Err) message
+errorPrim [_]              = expectingError "string"
+errorPrim _                = airityError
 
 -- Print to stdout.
 printPrim :: [SExpr] -> IO SExpr
@@ -118,7 +118,7 @@ primitiveEnv = Map.fromList [ ("+",      Primitive $ intintPrim (+))
                             , ("cons",   Primitive consPrim)
                             , ("concat", Primitive concatPrim)
                             , ("string", Primitive stringPrim)
-                            , ("error",  Primitive throwPrim)
+                            , ("error",  Primitive errorPrim)
                             , ("print",  Primitive printPrim)
                             , ("read",   Primitive readPrim)
                             , ("slurp",  Primitive slurpPrim)

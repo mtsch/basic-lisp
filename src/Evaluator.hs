@@ -28,6 +28,13 @@ evalListBody env expressions =
       err@(Err _) : _           -> return (env, err)
       _ | any isErr expressions -> return (env, head $ filter isErr expressions)
 
+      -- Can't call an integer, a string, a bool, nil or an empty list.
+      Int _    : _ -> return (env, Err "Can't call an int!")
+      String _ : _ -> return (env, Err "Can't call a string!")
+      Bool _   : _ -> return (env, Err "Can't call a bool!")
+      Nil      : _ -> return (env, Err "Can't call nil!")
+      List []  : _ -> return (env, Err "Can't call an empty list!")
+
       -- Special forms.
       Atom "def"   : args -> defSF env args
       Atom "if"    : args -> ifSF env args
@@ -57,15 +64,8 @@ evalListBody env expressions =
           do (env', resolved) <- eval env expr
              eval env' $ List (resolved : rest)
 
-      -- Can't call an integer, a string, a bool or nil
-      Int _    : _ -> return (env, Err "Can't call an int!")
-      String _ : _ -> return (env, Err "Can't call a string!")
-      Bool _   : _ -> return (env, Err "Can't call a bool!")
-      Nil      : _ -> return (env, Err "Can't call nil!")
-
       -- Empty list doesn't evaluate.
-      [] ->
-          return (env, List [])
+      [] -> return (env, List [])
 
 -- Call a function.
 callFunction :: Environment -> SExpr -> [SExpr] -> IO EnvSExpr
@@ -141,8 +141,8 @@ evalSF env expressions =
 
       -- Eval atom.
       [atom@(Atom _)] ->
-           do result <- snd <$> eval env atom
-              eval env $ List [Atom "eval", result]
+          do result <- snd <$> eval env atom
+             eval env $ List [Atom "eval", result]
 
       -- A value evals to itself.
       [val] -> return (env, val)
@@ -157,7 +157,7 @@ quoteSF env expressions =
       [val] -> return (env, val)
       _     -> return (env, sfError "quote")
 
--- Set mutable reference.
+-- Set a mutable reference.
 setSF :: Environment -> [SExpr] -> IO EnvSExpr
 setSF env expressions =
     case expressions of

@@ -43,10 +43,10 @@
 (print (get! counter))
 
 ; function that reads user input and computes a fibonacci number.
-(def read-fib (fn ()
-                  (do (print "Input a number.")
-                      (def input (read))
-                      (print (concat "The " input "-th fibonacci number is: "
-                      (string (fib (eval input))))))))
+(def read-fib (fun ()
+                   (do (print "Input a number.")
+                       (def input (read))
+                       (print (concat "The " input "-th fibonacci number is: "
+                       (string (fib (eval input))))))))
 
-(read-fib ())
+(read-fib)
